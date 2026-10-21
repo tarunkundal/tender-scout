@@ -120,3 +120,4 @@ Starter tenders feed, LightGBM fit ranker from Bid/Skip feedback, WhatsApp alert
 ## Notes log
 
 - 2026-10-21: Plan created. No tasks started.
+- 2026-10-21: Task 3 frontend part (branch `feat/auth-screens`): `/login` and `/signup` screens with `AuthLayout`, TanStack Query mutations, `login`/`signup` + `ApiError` in `api.ts`, mock mode (`VITE_USE_MOCKS`), placeholder `/dashboard`, `/forgot-password`, `/terms`, `/privacy`. Backend auth, `/verify`, `/reset`, `RequireAuth`, `AppShell` still to do.
