@@ -16,7 +16,7 @@ const FAQS = [
   },
   {
     q: "Is my company data safe?",
-    a: "Yes. Your data is encrypted and never shared with anyone.",
+    a: "We're building TenderScout with privacy in mind. Your documents are used only to check your eligibility for tenders, and we will never sell your data. Full details will be in our privacy policy before launch.",
   },
   {
     q: "Is this legal advice?",
@@ -29,7 +29,8 @@ export function Faq() {
     <section
       id="faq"
       aria-labelledby="faq-title"
-      className="scroll-mt-20 border-t"
+      tabIndex={-1}
+      className="scroll-mt-20 border-t focus:outline-none"
     >
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <h2
