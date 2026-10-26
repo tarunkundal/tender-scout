@@ -26,7 +26,8 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       aria-labelledby="how-title"
-      className="scroll-mt-20 border-t"
+      tabIndex={-1}
+      className="scroll-mt-20 border-t focus:outline-none"
     >
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <div className="max-w-2xl">

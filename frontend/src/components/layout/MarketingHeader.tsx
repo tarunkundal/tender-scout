@@ -1,4 +1,5 @@
 import { Menu } from "lucide-react"
+import { useRef } from "react"
 import { Link } from "react-router"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +15,21 @@ import { Logo } from "./Logo"
 import { NAV_ITEMS } from "./nav-items"
 
 export function MarketingHeader() {
+  // Section id chosen from the mobile menu; read once when the sheet finishes closing.
+  const pendingAnchorRef = useRef<string | null>(null)
+
+  // After an in-page link, focus the target section instead of the menu trigger,
+  // so the next Tab continues from where the user jumped to.
+  function handleCloseAutoFocus(event: Event) {
+    const id = pendingAnchorRef.current
+    pendingAnchorRef.current = null
+    if (!id) return
+    const target = document.getElementById(id)
+    if (!target) return
+    event.preventDefault()
+    target.focus({ preventScroll: true })
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -53,7 +69,11 @@ export function MarketingHeader() {
                 <Menu aria-hidden="true" className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72">
+            <SheetContent
+              side="right"
+              className="w-72"
+              onCloseAutoFocus={handleCloseAutoFocus}
+            >
               <SheetHeader>
                 <SheetTitle>Menu</SheetTitle>
                 <SheetDescription className="sr-only">
@@ -67,6 +87,9 @@ export function MarketingHeader() {
                       <SheetClose asChild>
                         <a
                           href={item.href}
+                          onClick={() => {
+                            pendingAnchorRef.current = item.href.split("#")[1]
+                          }}
                           className="block rounded-md px-3 py-2 text-base text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         >
                           {item.label}

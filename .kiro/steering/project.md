@@ -49,7 +49,7 @@ Use the LangChain/LangGraph piece for every AI job. Do not write custom wrappers
 | Tracing | LangSmith via env vars only |
 
 Allowed non-LangChain packages (keep to this list; ask before adding others):
-FastAPI, Pydantic/pydantic-settings, SQLAlchemy 2 (async) + Alembic, asyncpg/psycopg, Celery + Redis, pwdlib (argon2) + PyJWT, BeautifulSoup (listing tables), scikit-learn + joblib, uv, ruff. Frontend adds: TanStack Query, openapi-typescript.
+FastAPI, uvicorn (ASGI server), Pydantic/pydantic-settings, SQLAlchemy 2 (async) + Alembic, asyncpg/psycopg, Celery + Redis, redis (redis-py client), pwdlib (argon2) + PyJWT, BeautifulSoup (listing tables), scikit-learn + joblib, uv, ruff. Frontend adds: TanStack Query, openapi-typescript.
 
 Do NOT add: any test framework, Langfuse, Sentry, structlog, mypy, MinIO, SSE, react-pdf, separate vector DB, Supabase, Firebase, Google sign-in (for now).
 
@@ -133,3 +133,4 @@ Bid submission on portals, competitor/price intelligence, WhatsApp alerts, non-c
 ## Change log
 
 - 2026-10-21: Initial requirements captured (civil works, Neon, LangChain-first, no tests, defaults for auth/LLM/beginner mode/hosting).
+- 2026-10-21: Backend skeleton: added uvicorn (ASGI server) and redis-py to allowed packages.
