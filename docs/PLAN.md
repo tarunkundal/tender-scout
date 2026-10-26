@@ -6,15 +6,16 @@ Every task is verified by `npm run build` + `npm run lint` (frontend), `ruff che
 
 ## Phase 0: Foundation
 
-- [ ] **1. Repo skeleton and frontend close-out**
+- [~] **1. Repo skeleton and frontend close-out**
   - Fix review items: mobile Sheet `onCloseAutoFocus` after anchor links; soften FAQ data-safety copy.
   - Change the home sample card to a fictional CPWD civil works tender.
   - Root `docker-compose.yml` (`pgvector/pgvector` Postgres, Redis, Mailpit), `Makefile` (`up`, `down`, `dev`, `worker`, `beat`, `types`, `ingest`).
   - Demo: `make up` starts services; home page shows the civil works example.
 
-- [ ] **2. Backend scaffold**
+- [x] **2. Backend scaffold**
   - `backend/` with uv; pydantic-settings (pooled + direct DB URLs, asyncpg statement-cache flag); async SQLAlchemy; Alembic on direct URL, first migration enables `vector`; `GET /health`; CORS for Vite; `make types` writes `frontend/src/types/api.ts`.
   - Demo: `curl :8000/health` → db ok, redis ok.
+  - Done (branch `feat/backend-setup`): FastAPI app factory + `/health` (DB `SELECT 1` + Redis `PING`, 503 on failure), settings with Neon URL normalization, Alembic `0001` enables `vector`, Celery app with 5 queues + `ping` task, empty module packages. No domain tables yet.
 
 - [ ] **3. Auth and app shell**
   - `users`, `companies`, `memberships`; pwdlib argon2; access + refresh JWT in httpOnly cookies + CSRF header; email verify + reset via Mailpit; login rate limit; all queries scoped by `company_id`.
@@ -121,3 +122,5 @@ Starter tenders feed, LightGBM fit ranker from Bid/Skip feedback, WhatsApp alert
 
 - 2026-10-21: Plan created. No tasks started.
 - 2026-10-21: Task 3 frontend part (branch `feat/auth-screens`): `/login` and `/signup` screens with `AuthLayout`, TanStack Query mutations, `login`/`signup` + `ApiError` in `api.ts`, mock mode (`VITE_USE_MOCKS`), placeholder `/dashboard`, `/forgot-password`, `/terms`, `/privacy`. Backend auth, `/verify`, `/reset`, `RequireAuth`, `AppShell` still to do.
+- 2026-10-21: Task 1 docker-compose (`pgvector/pgvector:pg17`, `redis:7-alpine`, Mailpit; ports on 127.0.0.1) + Makefile (`make help`) done on `feat/backend-setup`. Task 1 stays `[~]`: the civil works sample card swap is still pending. `make ingest` is added with Task 9.
+- 2026-10-21: Task 2 done (backend scaffold, see above).

@@ -7,3 +7,13 @@ dist/
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+celerybeat-schedule*
+
+# Future local file storage (company documents); never commit
+backend/storage/
