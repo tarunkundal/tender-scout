@@ -103,5 +103,6 @@ export function useAuthForm<V extends object>({
     handleBlur,
     handleSubmit,
     handleServerError,
+    showErrors,
   }
 }

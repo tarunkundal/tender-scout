@@ -1,26 +1,32 @@
 import { AuthErrorSummary } from "@/components/auth/AuthErrorSummary"
-import { FieldError } from "@/components/auth/FieldError"
+import { ConsentField } from "@/components/auth/ConsentField"
+import {
+  AuthDivider,
+  GoogleSignInButton,
+} from "@/components/auth/GoogleSignInButton"
 import { PasswordField } from "@/components/auth/PasswordField"
 import { PasswordRuleHints } from "@/components/auth/PasswordRuleHints"
 import { SubmitButton } from "@/components/auth/SubmitButton"
 import { TextField } from "@/components/auth/TextField"
 import { TextLink } from "@/components/auth/TextLink"
 import { AuthLayout } from "@/components/layout/AuthLayout"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { useAuthForm } from "@/hooks/useAuthForm"
-import { signup } from "@/lib/api"
+import {
+  authErrorKind,
+  getSession,
+  sendVerificationCode,
+  signUpWithEmail,
+} from "@/lib/api"
+import { savePendingCompany } from "@/lib/pendingCompany"
+import { SESSION_QUERY_KEY } from "@/lib/queryClient"
 import {
   normalizeMobile,
   validateSignup,
   type SignupValues,
 } from "@/lib/validation"
-import { useMutation } from "@tanstack/react-query"
-import { MailCheck } from "lucide-react"
-import { useRef, useState } from "react"
-import { flushSync } from "react-dom"
-import { Link } from "react-router"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRef } from "react"
+import { useNavigate } from "react-router"
 
 const FIELD_IDS = {
   fullName: "signup-full-name",
@@ -32,7 +38,6 @@ const FIELD_IDS = {
 } as const
 
 const PASSWORD_RULES_ID = "signup-password-rules"
-const CONSENT_ERROR_ID = `${FIELD_IDS.consent}-error`
 
 const INITIAL_VALUES: SignupValues = {
   fullName: "",
@@ -44,10 +49,9 @@ const INITIAL_VALUES: SignupValues = {
 }
 
 export default function SignupPage() {
-  const headingRef = useRef<HTMLHeadingElement>(null)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const summaryRef = useRef<HTMLDivElement>(null)
-  // Email the verification link was sent to; set after a successful signup.
-  const [sentTo, setSentTo] = useState<string | null>(null)
   const form = useAuthForm({
     initialValues: INITIAL_VALUES,
     validate: validateSignup,
@@ -55,50 +59,56 @@ export default function SignupPage() {
     summaryRef,
   })
   const mutation = useMutation({
-    mutationFn: signup,
-    onSuccess: (_data, variables) => {
-      // Swap to the "Check your email" state, then focus its heading so
-      // screen reader users hear the new state.
-      flushSync(() => setSentTo(variables.email))
-      headingRef.current?.focus()
+    mutationFn: async (values: SignupValues) => {
+      const email = values.email.trim()
+      const result = await signUpWithEmail({
+        name: values.fullName.trim(),
+        email,
+        password: values.password,
+      })
+      // Neon Auth keeps only name/email/password; the company step reads the rest.
+      savePendingCompany({
+        companyName: values.companyName.trim(),
+        mobile: normalizeMobile(values.mobile),
+        consent: values.consent,
+      })
+      return { email, ...result }
     },
-    onError: form.handleServerError,
+    onSuccess: async ({ email, needsVerification }) => {
+      if (needsVerification) {
+        // Neon's project config has `sendVerificationEmailOnSignUp: false`
+        // (findings §14), so ask for the code explicitly. If that fails, the
+        // code screen starts without a cooldown and offers "Resend code".
+        let codeSent = true
+        try {
+          await sendVerificationCode(email)
+        } catch {
+          codeSent = false
+        }
+        void navigate(`/verify-email?email=${encodeURIComponent(email)}`, {
+          state: { codeSent },
+        })
+        return
+      }
+      // Verification turned off in Neon: RedirectIfAuthed takes over once the
+      // session is cached (then RequireAuth sends the user to /setup/company).
+      queryClient.setQueryData(SESSION_QUERY_KEY, await getSession())
+    },
+    onError: (error) => {
+      if (authErrorKind(error) === "user_exists") {
+        form.showErrors(
+          {
+            email:
+              "An account with this email already exists. Log in instead, or use another email.",
+          },
+          null,
+        )
+        return
+      }
+      form.handleServerError(error)
+    },
   })
   const pending = mutation.isPending
-
-  if (sentTo) {
-    return (
-      <>
-        <title>Check your email · TenderScout</title>
-        <AuthLayout
-          title="Check your email"
-          headingRef={headingRef}
-          subtitle={
-            <>
-              We sent a verification link to{" "}
-              <span className="font-medium break-all text-foreground">
-                {sentTo}
-              </span>
-              . Open it to activate your account.
-            </>
-          }
-        >
-          <div className="grid gap-6">
-            <div className="flex items-start gap-3 rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-              <MailCheck
-                aria-hidden="true"
-                className="size-5 shrink-0 text-brand"
-              />
-              <p>Didn't get it? Check your spam or promotions folder.</p>
-            </div>
-            <Button size="lg" variant="outline" className="w-full" asChild>
-              <Link to="/login">Back to log in</Link>
-            </Button>
-          </div>
-        </AuthLayout>
-      </>
-    )
-  }
 
   const { values, errors } = form
 
@@ -107,7 +117,6 @@ export default function SignupPage() {
       <title>Create account · TenderScout</title>
       <AuthLayout
         title="Create account"
-        headingRef={headingRef}
         subtitle="Set up your company profile in about five minutes."
         footer={
           <>
@@ -115,133 +124,113 @@ export default function SignupPage() {
           </>
         }
       >
-        <form
-          noValidate
-          aria-busy={pending}
-          className="grid gap-5"
-          onSubmit={form.handleSubmit((v) => {
-            if (pending) return
-            const mobile = normalizeMobile(v.mobile)
-            mutation.mutate({
-              fullName: v.fullName.trim(),
-              companyName: v.companyName.trim(),
-              email: v.email.trim(),
-              mobile: mobile || undefined,
-              password: v.password,
-              consent: v.consent,
-            })
-          })}
-        >
-          <AuthErrorSummary
-            ref={summaryRef}
-            items={form.summaryItems}
-            formError={form.formError}
-          />
+        <div className="grid gap-6">
+          <GoogleSignInButton next="/dashboard" />
+          <AuthDivider />
 
-          <TextField
-            id={FIELD_IDS.fullName}
-            name="fullName"
-            label="Full name"
-            autoComplete="name"
-            required
-            value={values.fullName}
-            onChange={(e) => form.setValue("fullName", e.target.value)}
-            onBlur={() => form.handleBlur("fullName")}
-            error={errors.fullName}
-          />
-
-          <TextField
-            id={FIELD_IDS.companyName}
-            name="companyName"
-            label="Company name"
-            autoComplete="organization"
-            required
-            value={values.companyName}
-            onChange={(e) => form.setValue("companyName", e.target.value)}
-            onBlur={() => form.handleBlur("companyName")}
-            error={errors.companyName}
-          />
-
-          <TextField
-            id={FIELD_IDS.email}
-            name="email"
-            type="email"
-            label="Work email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            required
-            value={values.email}
-            onChange={(e) => form.setValue("email", e.target.value)}
-            onBlur={() => form.handleBlur("email")}
-            error={errors.email}
-          />
-
-          <TextField
-            id={FIELD_IDS.mobile}
-            name="mobile"
-            type="tel"
-            inputMode="numeric"
-            label="Mobile number"
-            optional
-            hint="10-digit Indian mobile number, without +91."
-            autoComplete="tel"
-            value={values.mobile}
-            onChange={(e) => form.setValue("mobile", e.target.value)}
-            onBlur={() => form.handleBlur("mobile")}
-            error={errors.mobile}
-          />
-
-          <PasswordField
-            id={FIELD_IDS.password}
-            name="password"
-            label="Password"
-            autoComplete="new-password"
-            required
-            describedBy={PASSWORD_RULES_ID}
-            value={values.password}
-            onChange={(e) => form.setValue("password", e.target.value)}
-            onBlur={() => form.handleBlur("password")}
-            error={errors.password}
+          <form
+            noValidate
+            aria-busy={pending}
+            className="grid gap-5"
+            onSubmit={form.handleSubmit((v) => {
+              if (pending) return
+              mutation.mutate(v)
+            })}
           >
-            <PasswordRuleHints
-              id={PASSWORD_RULES_ID}
-              password={values.password}
+            <AuthErrorSummary
+              ref={summaryRef}
+              items={form.summaryItems}
+              formError={form.formError}
             />
-          </PasswordField>
 
-          <div className="grid gap-2">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id={FIELD_IDS.consent}
-                name="consent"
-                required
-                className="mt-0.5 size-5"
-                checked={values.consent}
-                onCheckedChange={(checked) =>
-                  form.setValue("consent", checked === true)
-                }
-                onBlur={() => form.handleBlur("consent")}
-                aria-invalid={errors.consent ? true : undefined}
-                aria-describedby={errors.consent ? CONSENT_ERROR_ID : undefined}
+            <TextField
+              id={FIELD_IDS.fullName}
+              name="fullName"
+              label="Full name"
+              autoComplete="name"
+              required
+              value={values.fullName}
+              onChange={(e) => form.setValue("fullName", e.target.value)}
+              onBlur={() => form.handleBlur("fullName")}
+              error={errors.fullName}
+            />
+
+            <TextField
+              id={FIELD_IDS.companyName}
+              name="companyName"
+              label="Company name"
+              autoComplete="organization"
+              required
+              maxLength={200}
+              value={values.companyName}
+              onChange={(e) => form.setValue("companyName", e.target.value)}
+              onBlur={() => form.handleBlur("companyName")}
+              error={errors.companyName}
+            />
+
+            <TextField
+              id={FIELD_IDS.email}
+              name="email"
+              type="email"
+              label="Work email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              value={values.email}
+              onChange={(e) => form.setValue("email", e.target.value)}
+              onBlur={() => form.handleBlur("email")}
+              error={errors.email}
+            />
+
+            <TextField
+              id={FIELD_IDS.mobile}
+              name="mobile"
+              type="tel"
+              inputMode="numeric"
+              label="Mobile number"
+              optional
+              hint="10-digit Indian mobile number, without +91."
+              autoComplete="tel"
+              value={values.mobile}
+              onChange={(e) => form.setValue("mobile", e.target.value)}
+              onBlur={() => form.handleBlur("mobile")}
+              error={errors.mobile}
+            />
+
+            <PasswordField
+              id={FIELD_IDS.password}
+              name="password"
+              label="Password"
+              autoComplete="new-password"
+              required
+              describedBy={PASSWORD_RULES_ID}
+              value={values.password}
+              onChange={(e) => form.setValue("password", e.target.value)}
+              onBlur={() => form.handleBlur("password")}
+              error={errors.password}
+            >
+              <PasswordRuleHints
+                id={PASSWORD_RULES_ID}
+                password={values.password}
               />
-              <Label
-                htmlFor={FIELD_IDS.consent}
-                className="block leading-snug font-normal"
-              >
-                I agree to the <TextLink to="/terms">Terms</TextLink> and{" "}
-                <TextLink to="/privacy">Privacy Policy</TextLink>
-              </Label>
-            </div>
-            <FieldError id={CONSENT_ERROR_ID} message={errors.consent} />
-          </div>
+            </PasswordField>
 
-          <SubmitButton
-            pending={pending}
-            label="Create account"
-            pendingLabel="Creating account…"
-          />
-        </form>
+            <ConsentField
+              id={FIELD_IDS.consent}
+              checked={values.consent}
+              error={errors.consent}
+              onCheckedChange={(checked) => form.setValue("consent", checked)}
+              onBlur={() => form.handleBlur("consent")}
+            />
+
+            <SubmitButton
+              pending={pending}
+              label="Create account"
+              pendingLabel="Creating account…"
+            />
+          </form>
+        </div>
       </AuthLayout>
     </>
   )

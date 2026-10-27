@@ -60,6 +60,28 @@ export function validateNewPassword(value: string) {
     : "Use at least 8 characters, including a letter and a number."
 }
 
+/** Same limits as the backend (`POST /me/company`: 2–200 characters). */
+export function validateCompanyName(value: string) {
+  const name = value.trim()
+  if (!name) return "Enter your company name."
+  if (name.length < 2) return "Enter at least 2 characters."
+  if (name.length > 200) return "Use 200 characters or fewer."
+  return undefined
+}
+
+const OTP_RE = /^\d{6}$/
+
+/** Strips spaces so "123 456" is accepted. */
+export function normalizeOtp(value: string) {
+  return value.replace(/\s+/g, "")
+}
+
+export function validateOtp(value: string) {
+  const otp = normalizeOtp(value)
+  if (!otp) return "Enter the 6-digit code from the email."
+  return OTP_RE.test(otp) ? undefined : "The code is 6 digits."
+}
+
 export interface LoginValues {
   email: string
   password: string
@@ -88,16 +110,33 @@ export function validateSignup(
 ): FieldErrors<keyof SignupValues> {
   return {
     fullName: validateRequired(values.fullName, "Enter your full name."),
-    companyName: validateRequired(
-      values.companyName,
-      "Enter your company name.",
-    ),
+    companyName: validateCompanyName(values.companyName),
     email: validateEmail(values.email),
     mobile: validateMobile(values.mobile),
     password: validateNewPassword(values.password),
-    consent: values.consent
-      ? undefined
-      : "Agree to the Terms and Privacy Policy to continue.",
+    consent: validateConsent(values.consent),
+  }
+}
+
+function validateConsent(consent: boolean) {
+  return consent
+    ? undefined
+    : "Agree to the Terms and Privacy Policy to continue."
+}
+
+export interface CompanySetupValues {
+  companyName: string
+  mobile: string
+  consent: boolean
+}
+
+export function validateCompanySetup(
+  values: CompanySetupValues,
+): FieldErrors<keyof CompanySetupValues> {
+  return {
+    companyName: validateCompanyName(values.companyName),
+    mobile: validateMobile(values.mobile),
+    consent: validateConsent(values.consent),
   }
 }
 

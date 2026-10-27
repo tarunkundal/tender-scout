@@ -1,6 +1,9 @@
 # Local dev services. Ports are bound to 127.0.0.1 only.
 name: tenderscout
 
+# The app's database is the Neon dev branch `tender_scout_backend` (Neon Auth needs a real Neon
+# DB), so the API, workers and `make migrate` do not use the `db` service below. Redis and
+# Mailpit are still used for local dev; `db` is kept for offline experiments.
 services:
   db:
     image: pgvector/pgvector:pg17

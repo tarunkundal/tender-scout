@@ -1,11 +1,21 @@
-import { Link } from "react-router"
 import { cn } from "@/lib/utils"
+import { Link } from "react-router"
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({
+  className,
+  to = "/",
+  label = "TenderScout home",
+}: {
+  className?: string
+  /** Link target; the app shell points it at /dashboard. */
+  to?: string
+  /** Accessible name of the link. */
+  label?: string
+}) {
   return (
     <Link
-      to="/"
-      aria-label="TenderScout home"
+      to={to}
+      aria-label={label}
       className={cn(
         "inline-flex items-center gap-2 rounded-md text-foreground",
         className,

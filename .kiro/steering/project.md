@@ -16,14 +16,14 @@ TenderScout helps Indian MSME civil contractors find government tenders they can
 | Company documents | Full set: GST, PAN, Udyam, ITR/balance sheets, work orders, completion certificates, contractor registration/enlistment, bank solvency, EPF/ESIC, labour licence, ISO, partnership deed/POA. |
 | Tender links | Every tender stores and shows: official portal link ("View on CPPP ↗"), tender ref ID with copy button, `last_checked_at`, and our PDF copy opened at the cited page (`file.pdf#page=N`). |
 | Architecture | Modular monolith: one Python backend, run as FastAPI API process + Celery workers + Celery Beat. |
-| Database | Neon Postgres + pgvector. Local dev: `pgvector/pgvector` Postgres in Docker. |
+| Database | Neon Postgres + pgvector. Local dev also uses Neon: the `dev` branch, because Neon Auth needs a real Neon DB. Docker runs only Redis + Mailpit for dev (the Docker Postgres service is no longer used by the app). |
+| Auth | Neon Managed Better Auth. Frontend uses `@neondatabase/neon-js` (`createAuthClient(VITE_NEON_AUTH_URL)`) for sign-up, sign-in, sign-out, email verification (6-digit code), password reset and Google sign-in (Neon shared dev OAuth keys for now; own Google OAuth app before launch). Users/sessions live in the `neon_auth` schema. FastAPI never handles passwords: it verifies the SDK's JWT (`Authorization: Bearer`) against Neon's JWKS with PyJWT and maps `sub` to our `companies`/`memberships`. Email verification is enabled in the Neon console; unverified users cannot use the app. Each Neon branch has its own auth URL and users. The old self-built auth is archived on git branch `archive/own-auth` (reference only, to be discarded later). |
 | AI | LangChain + LangGraph for ALL AI work (see "LangChain-first rule"). Hosted LLM APIs, provider-agnostic. |
 | ML | scikit-learn domain classifier (civil works or not) on LangChain embeddings. LightGBM fit ranker later, from Bid/Skip feedback. |
 | Tests | No tests and no test libraries. Each task is verified by build/lint plus a manual demo. |
 | Frontend | Existing React 19 + Vite 8 + TS 6 + Tailwind 4 + shadcn/ui + React Router 7 app in `frontend/`. |
 
 Defaults chosen by the assistant (user has not confirmed yet; change here if they do):
-- Auth: our own email/password auth in FastAPI (JWT in httpOnly cookies). No Neon Better Auth.
 - LLM: provider-agnostic; `small` model for classification/validation, `strong` model for extraction and judgments.
 - Beginner mode in v1: readiness checklist + "Why can't I bid?" only. Starter tenders feed later.
 - Hosting: local first, cloud deploy is the last task.
@@ -49,9 +49,9 @@ Use the LangChain/LangGraph piece for every AI job. Do not write custom wrappers
 | Tracing | LangSmith via env vars only |
 
 Allowed non-LangChain packages (keep to this list; ask before adding others):
-FastAPI, uvicorn (ASGI server), Pydantic/pydantic-settings, SQLAlchemy 2 (async) + Alembic, asyncpg/psycopg, Celery + Redis, redis (redis-py client), pwdlib (argon2) + PyJWT, BeautifulSoup (listing tables), scikit-learn + joblib, uv, ruff. Frontend adds: TanStack Query, openapi-typescript.
+FastAPI, uvicorn (ASGI server), Pydantic/pydantic-settings, SQLAlchemy 2 (async) + Alembic, asyncpg/psycopg, Celery + Redis, redis (redis-py client), PyJWT[crypto] (verify Neon Auth JWTs via JWKS), BeautifulSoup (listing tables), scikit-learn + joblib, uv, ruff. Frontend adds: TanStack Query, openapi-typescript, `@neondatabase/neon-js` (Neon Auth SDK).
 
-Do NOT add: any test framework, Langfuse, Sentry, structlog, mypy, MinIO, SSE, react-pdf, separate vector DB, Supabase, Firebase, Google sign-in (for now).
+Do NOT add: any test framework, Langfuse, Sentry, structlog, mypy, MinIO, SSE, react-pdf, separate vector DB, Supabase, Firebase, our own password/session auth (pwdlib, refresh tokens, CSRF cookies), Auth0/Clerk.
 
 ## AI design rules
 
@@ -102,6 +102,8 @@ tender_scout/
 ## Engineering conventions
 
 - Python 3.12+, managed with uv. Lint with `ruff check`. Pin exact versions (check PyPI/npm for current versions at install time).
+- Env: `backend/.env` has `DATABASE_URL` (pooled, `-pooler` host), `DATABASE_URL_DIRECT`, `DB_DISABLE_PREPARED_STATEMENTS=true`, `NEON_AUTH_URL`; `frontend/.env` has `VITE_NEON_AUTH_URL`, `VITE_API_BASE_URL=/api` (Vite proxies `/api` → `localhost:8000`). Dev branch auth URL: `https://ep-muddy-cell-b5gjgdjp.neonauth.c-7.us-east-2.aws.neon.tech/neondb/auth` (not a secret). Project region is us-east-2; reconsider an Asia region before production.
+- Never write, delete or truncate anything in the `neon_auth` schema except a throwaway test user's own rows (`neon_auth."user"` by exact email, plus its `verification` rows by identifier). Never touch `project_config` or `jwks`. On 2026-10-26 the dev branch's `project_config` row went missing (cause unknown) and Neon Auth broke with "Project config not found".
 - Neon: `DATABASE_URL` = pooled (app, workers), `DATABASE_URL_DIRECT` = direct (Alembic, LangGraph checkpointer). Disable asyncpg prepared-statement cache behind the pooler. Short pool idle timeouts so Neon can scale to zero.
 - Multi-tenancy: every company-owned query and every retriever filters by `company_id`. A user must never see another company's data.
 - Files: `Storage` interface; local private disk now, S3-compatible cloud storage at deploy. Files served only through authenticated endpoints. Never commit real documents or personal data; use synthetic samples.
@@ -128,9 +130,11 @@ tender_scout/
 
 ## Out of scope for v1
 
-Bid submission on portals, competitor/price intelligence, WhatsApp alerts, non-civil domains, payments, starter tenders feed, ML fit ranker (only collect Bid/Skip feedback), Google sign-in.
+Bid submission on portals, competitor/price intelligence, WhatsApp alerts, non-civil domains, payments, starter tenders feed, ML fit ranker (only collect Bid/Skip feedback).
 
 ## Change log
 
 - 2026-10-21: Initial requirements captured (civil works, Neon, LangChain-first, no tests, defaults for auth/LLM/beginner mode/hosting).
 - 2026-10-21: Backend skeleton: added uvicorn (ASGI server) and redis-py to allowed packages.
+- 2026-10-22: Auth switched to Neon Managed Better Auth (user decision). Google sign-in now in scope (Neon shared dev keys). Email verification by 6-digit code. Local dev DB moved to Neon branch `tender_scout_backend`. Self-built auth archived on `archive/own-auth`. Removed pwdlib from allowed packages; added PyJWT[crypto] and `@neondatabase/neon-js`.
+- 2026-10-26: Neon dev branch `tender_scout_backend` deleted after its Neon Auth `project_config` went missing ("Project config not found"). Replaced by a fresh branch `dev` (auth URL `ep-muddy-cell-b5gjgdjp`). Added a rule never to touch `neon_auth.project_config` / `jwks`.

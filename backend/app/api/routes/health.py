@@ -16,7 +16,9 @@ from app.core.redis import redis_client
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["health"])
 
-CHECK_TIMEOUT_SECONDS = 2.0
+# Neon (us-east-2) from India is ~350 ms RTT; ping + BEGIN + SELECT through the pooler takes
+# ~2.5 s there, so 2 s always timed out. Revisit when the project moves to an Asia region.
+CHECK_TIMEOUT_SECONDS = 5.0
 
 CheckStatus = Literal["ok", "error"]
 

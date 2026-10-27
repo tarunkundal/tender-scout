@@ -17,10 +17,11 @@ Every task is verified by `npm run build` + `npm run lint` (frontend), `ruff che
   - Demo: `curl :8000/health` → db ok, redis ok.
   - Done (branch `feat/backend-setup`): FastAPI app factory + `/health` (DB `SELECT 1` + Redis `PING`, 503 on failure), settings with Neon URL normalization, Alembic `0001` enables `vector`, Celery app with 5 queues + `ping` task, empty module packages. No domain tables yet.
 
-- [ ] **3. Auth and app shell**
-  - `users`, `companies`, `memberships`; pwdlib argon2; access + refresh JWT in httpOnly cookies + CSRF header; email verify + reset via Mailpit; login rate limit; all queries scoped by `company_id`.
-  - Frontend: TanStack Query; real `/login`, `/signup`, `/verify`, `/reset`; `RequireAuth`; `AppShell` sidebar (Dashboard, Tenders, Documents, Pipeline, Settings); empty dashboard.
-  - Demo: sign up → Mailpit link → log in → dashboard → log out.
+- [x] **3. Auth and app shell**
+  - Neon Managed Better Auth (see steering "Auth"). Backend: JWT verify via Neon JWKS (PyJWT[crypto]) → `get_current_user`; tables `companies`, `memberships` (user_id = Neon `sub`), `consents`; `POST /me/company` (company name, mobile, consent; once after signup), `GET /me`; `get_current_company` for scoping by `company_id`.
+  - Frontend: `@neondatabase/neon-js` auth client; `/login`, `/signup` (+ "Continue with Google"), `/verify-email` (6-digit code), `/forgot-password`, `/reset-password`; `apiFetch` adds Bearer JWT; `RequireAuth`; company setup step after first login if no company; `AppShell` sidebar (Dashboard, Tenders, Documents, Pipeline, Settings) + user menu with Log out; empty dashboard.
+  - Demo: sign up → code email → verify → company saved → dashboard → refresh stays logged in → log out; Google sign-in; forgot/reset.
+  - Done (branch `feat/neon-auth`, uncommitted): both halves reviewed APPROVED; E2E smoke (health, proxy, SPA routes, real Neon JWT → `/me`, company 201/409) passed. Real email code and Google round trip are manual browser checks (`.agents/tasks/neon-auth/final-report.md`).
 
 ## Phase 1: Company side
 
@@ -116,7 +117,7 @@ Every task is verified by `npm run build` + `npm run lint` (frontend), `ruff che
 
 ## Future (not v1)
 
-Starter tenders feed, LightGBM fit ranker from Bid/Skip feedback, WhatsApp alerts, competitor/price intelligence, more domains (IT hardware next), Google sign-in.
+Starter tenders feed, LightGBM fit ranker from Bid/Skip feedback, WhatsApp alerts, competitor/price intelligence, more domains (IT hardware next). (Google sign-in moved into Task 3 on 2026-10-22.)
 
 ## Notes log
 
@@ -124,3 +125,7 @@ Starter tenders feed, LightGBM fit ranker from Bid/Skip feedback, WhatsApp alert
 - 2026-10-21: Task 3 frontend part (branch `feat/auth-screens`): `/login` and `/signup` screens with `AuthLayout`, TanStack Query mutations, `login`/`signup` + `ApiError` in `api.ts`, mock mode (`VITE_USE_MOCKS`), placeholder `/dashboard`, `/forgot-password`, `/terms`, `/privacy`. Backend auth, `/verify`, `/reset`, `RequireAuth`, `AppShell` still to do.
 - 2026-10-21: Task 1 docker-compose (`pgvector/pgvector:pg17`, `redis:7-alpine`, Mailpit; ports on 127.0.0.1) + Makefile (`make help`) done on `feat/backend-setup`. Task 1 stays `[~]`: the civil works sample card swap is still pending. `make ingest` is added with Task 9.
 - 2026-10-21: Task 2 done (backend scaffold, see above).
+- 2026-10-22: Task 3 re-planned around Neon Managed Better Auth (user decision). Self-built auth (backend approved, frontend partial) archived on branch `archive/own-auth`. New work on `feat/neon-auth` (from `feat/backend-setup`). Local dev DB is the Neon branch `tender_scout_backend`.
+- 2026-10-26: Task 3 backend half on `feat/neon-auth`: Neon JWT verification (PyJWT, JWKS, EdDSA), `get_current_user` (403 if email unverified) / `get_current_company`, `companies`/`memberships`/`consents` (migration `0002`, applied on the Neon dev branch), `GET /me`, `POST /me/company`. Frontend half still to do.
+- 2026-10-26: Task 3 frontend half on `feat/neon-auth`: Neon auth client (`src/lib/auth.ts`); `apiFetch` with the Neon JWT (`/api` Vite proxy); `["session"]`/`["me"]` queries; `RequireAuth` (login → verify → company) / `RedirectIfAuthed`; `/signup` and `/login` (+ Google), `/verify-email` (6-digit code, 30 s resend cooldown), `/auth/callback` (Google landing), `/forgot-password`, `/reset-password`, `/setup/company` (prefilled from signup); `AppShell` + user menu, dashboard, placeholders. Auth mock mode removed. Build/lint/format and the REST + proxy flow are verified. Task 3 stays `[~]` until the user runs the manual browser demo (real email code, Google).
+- 2026-10-26: Task 3 done: backend and frontend reviews APPROVED, final E2E smoke passed on the Neon dev branch. Known: a cold API's first `/health` returns 503 (`db: error`) until a pooled Neon connection is warm (us-east-2 latency). Manual browser demo (email code, Google, reset) left to the user.

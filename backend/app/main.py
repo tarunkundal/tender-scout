@@ -5,12 +5,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.db import engine
+from app.core.errors import AppError, app_error_handler, validation_error_handler
 from app.core.logging import configure_logging
 from app.core.redis import redis_client
 
@@ -37,10 +39,12 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,  # the frontend will use httpOnly auth cookies
+        allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],
+        allow_headers=["*"],  # includes Authorization: Bearer <Neon Auth JWT>
     )
+    app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.include_router(api_router, prefix=settings.API_PREFIX)
     logger.info("%s API configured (environment=%s)", settings.APP_NAME, settings.ENVIRONMENT)
     return app

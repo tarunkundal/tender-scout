@@ -2,7 +2,7 @@ import { Logo } from "@/components/layout/Logo"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router"
 
-/** Placeholder for screens that are not built yet (/dashboard, /terms, ...). */
+/** Full-page placeholder for public screens not built yet (/terms, /privacy). */
 export default function ComingSoonPage({ title }: { title: string }) {
   return (
     <>

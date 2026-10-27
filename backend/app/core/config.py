@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -80,6 +81,16 @@ class Settings(BaseSettings):
     # Accepts a JSON list or a comma-separated string.
     CORS_ORIGINS: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
 
+    # Neon Managed Better Auth (per Neon branch). We only verify its JWTs; no passwords here.
+    NEON_AUTH_URL: str  # e.g. https://ep-xxx.neonauth.<region>.aws.neon.tech/neondb/auth
+    NEON_AUTH_JWKS_URL: str | None = None  # defaults to {NEON_AUTH_URL}/.well-known/jwks.json
+    # Observed in real tokens (findings §14): iss and aud are both the origin of NEON_AUTH_URL,
+    # e.g. https://ep-xxx.neonauth.<region>.aws.neon.tech. Both default to that origin.
+    NEON_AUTH_ISSUER: str | None = None
+    NEON_AUTH_AUDIENCE: str | None = None
+    # Version of the Terms + Privacy text the user accepts at company setup.
+    CONSENT_VERSION: str = "2026-10-22"
+
     # Placeholders for later tasks (AI core, Task 6). Unused for now.
     LLM_SMALL_MODEL: str | None = None
     LLM_STRONG_MODEL: str | None = None
@@ -112,6 +123,18 @@ class Settings(BaseSettings):
             self.CELERY_BROKER_URL = self.REDIS_URL
         if self.CELERY_RESULT_BACKEND is None:
             self.CELERY_RESULT_BACKEND = self.REDIS_URL
+
+        self.NEON_AUTH_URL = self.NEON_AUTH_URL.rstrip("/")
+        auth_url = urlsplit(self.NEON_AUTH_URL)
+        if auth_url.scheme != "https" or not auth_url.netloc:
+            raise ValueError("NEON_AUTH_URL must be an https:// URL")
+        auth_origin = f"{auth_url.scheme}://{auth_url.netloc}"
+        if self.NEON_AUTH_JWKS_URL is None:
+            self.NEON_AUTH_JWKS_URL = f"{self.NEON_AUTH_URL}/.well-known/jwks.json"
+        if self.NEON_AUTH_ISSUER is None:
+            self.NEON_AUTH_ISSUER = auth_origin
+        if self.NEON_AUTH_AUDIENCE is None:
+            self.NEON_AUTH_AUDIENCE = auth_origin
 
         if self.ENVIRONMENT == "production":
             if self.SECRET_KEY is None or self.SECRET_KEY.get_secret_value() in (
