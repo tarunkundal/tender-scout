@@ -25,9 +25,10 @@ Every task is verified by `npm run build` + `npm run lint` (frontend), `ruff che
 
 ## Phase 1: Company side
 
-- [ ] **4. Onboarding and company profile**
+- [x] **4. Onboarding and company profile**
   - Wizard: name, entity type, states, work types, registration class, "Bid before?" (`beginner` flag). Settings page to edit.
   - Demo: new user completes setup and sees it in Settings.
+  - Done (branch `feat/company-profile`, uncommitted): migration `0003` profile columns + CHECKs; `GET`/`PUT /company/profile`, `GET /reference/onboarding` (36 states/UTs), `/me` `profile_completed` + `beginner`; `/setup/profile` 3-step wizard, `/settings` company profile form, dashboard profile card. Evidence: `.agents/tasks/company-profile/verification.md`.
 
 - [ ] **5. Document vault**
   - `Storage` interface (local private disk); type/size checks; checksum dedupe; `documents` table (type, status, expiry); one-time consent; Celery `documents` queue (Uploaded → Processing → Needs review / Failed).
@@ -129,3 +130,4 @@ Starter tenders feed, LightGBM fit ranker from Bid/Skip feedback, WhatsApp alert
 - 2026-10-26: Task 3 backend half on `feat/neon-auth`: Neon JWT verification (PyJWT, JWKS, EdDSA), `get_current_user` (403 if email unverified) / `get_current_company`, `companies`/`memberships`/`consents` (migration `0002`, applied on the Neon dev branch), `GET /me`, `POST /me/company`. Frontend half still to do.
 - 2026-10-26: Task 3 frontend half on `feat/neon-auth`: Neon auth client (`src/lib/auth.ts`); `apiFetch` with the Neon JWT (`/api` Vite proxy); `["session"]`/`["me"]` queries; `RequireAuth` (login → verify → company) / `RedirectIfAuthed`; `/signup` and `/login` (+ Google), `/verify-email` (6-digit code, 30 s resend cooldown), `/auth/callback` (Google landing), `/forgot-password`, `/reset-password`, `/setup/company` (prefilled from signup); `AppShell` + user menu, dashboard, placeholders. Auth mock mode removed. Build/lint/format and the REST + proxy flow are verified. Task 3 stays `[~]` until the user runs the manual browser demo (real email code, Google).
 - 2026-10-26: Task 3 done: backend and frontend reviews APPROVED, final E2E smoke passed on the Neon dev branch. Known: a cold API's first `/health` returns 503 (`db: error`) until a pooled Neon connection is warm (us-east-2 latency). Manual browser demo (email code, Google, reset) left to the user.
+- 2026-10-27: Task 4 done on `feat/company-profile`: profile fields on `companies` (migration `0003`, applied on the Neon dev branch), option lists in `app/modules/companies/reference.py`, `RequireAuth` order login → verify → company → profile. Real-JWT API flow verified; the browser walk-through of the wizard and Settings is a manual step.

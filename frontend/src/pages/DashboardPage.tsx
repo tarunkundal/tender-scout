@@ -1,3 +1,4 @@
+import { CompanyProfileSummary } from "@/components/profile/CompanyProfileSummary"
 import { Card, CardContent } from "@/components/ui/card"
 import { useMe } from "@/hooks/useMe"
 import { Building2, Inbox } from "lucide-react"
@@ -36,11 +37,13 @@ export default function DashboardPage() {
                 Your matched tenders will appear here.
               </h2>
               <p className="text-muted-foreground">
-                Next: complete your company profile.
+                We'll match them against your company profile below.
               </p>
             </div>
           </CardContent>
         </Card>
+
+        <CompanyProfileSummary />
       </div>
     </>
   )

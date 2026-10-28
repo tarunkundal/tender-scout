@@ -87,6 +87,13 @@ export function useAuthForm<V extends object>({
     else showErrors({}, error.message || FALLBACK_MESSAGE)
   }
 
+  /** Clears errors and the "attempted" flag (e.g. when a wizard changes step). */
+  function resetErrors() {
+    setErrors({})
+    setFormError(null)
+    setAttempted(false)
+  }
+
   const summaryItems: ErrorSummaryItem[] = (
     Object.entries(fieldIds) as [Key, string][]
   ).flatMap(([key, id]) => {
@@ -104,5 +111,6 @@ export function useAuthForm<V extends object>({
     handleSubmit,
     handleServerError,
     showErrors,
+    resetErrors,
   }
 }

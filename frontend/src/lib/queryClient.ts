@@ -17,3 +17,14 @@ export const ME_QUERY_KEY = ["me"] as const
 export function meQueryKey(userId: string) {
   return [...ME_QUERY_KEY, userId] as const
 }
+
+/** Option lists for the profile forms (`GET /reference/onboarding`). */
+export const ONBOARDING_OPTIONS_QUERY_KEY = ["onboarding-options"] as const
+
+/** Prefix of every `GET /company/profile` entry. */
+export const COMPANY_PROFILE_QUERY_KEY = ["company-profile"] as const
+
+/** The signed-in user's company profile, keyed like `meQueryKey`. */
+export function companyProfileQueryKey(userId: string) {
+  return [...COMPANY_PROFILE_QUERY_KEY, userId] as const
+}

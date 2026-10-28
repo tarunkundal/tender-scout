@@ -16,6 +16,14 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api"
 
 export type Me = components["schemas"]["MeResponse"]
 export type CompanyCreate = components["schemas"]["CompanyCreate"]
+export type CompanyProfile = components["schemas"]["CompanyProfile"]
+export type CompanyProfileUpdate = components["schemas"]["CompanyProfileUpdate"]
+export type OnboardingOptions = components["schemas"]["OnboardingOptions"]
+export type EntityType = CompanyProfileUpdate["entity_type"]
+export type StateCode = CompanyProfileUpdate["states"][number]
+export type WorkType = CompanyProfileUpdate["work_types"][number]
+export type RegistrationAuthority =
+  CompanyProfileUpdate["registration_authority"]
 
 /** Error thrown by every function in this file for a failed request. */
 export class ApiError extends Error {
@@ -310,7 +318,10 @@ async function toApiError(
     const fieldErrors: Record<string, string> = {}
     for (const issue of data.detail as ValidationIssue[]) {
       const loc = Array.isArray(issue.loc) ? issue.loc : []
-      const apiField = String(loc.at(-1) ?? "")
+      // ["body", "states", 2] → "states": the field, not the list index.
+      const apiField = String(
+        (loc[0] === "body" && loc.length > 1 ? loc[1] : loc.at(-1)) ?? "",
+      )
       const field = fieldNames[apiField] ?? apiField
       if (field && typeof issue.msg === "string" && !fieldErrors[field]) {
         fieldErrors[field] = issue.msg
@@ -384,6 +395,36 @@ export function createCompany(input: CompanyCreate): Promise<Me> {
       company_name: "companyName",
       contact_mobile: "mobile",
       consent: "consent",
+    },
+  })
+}
+
+/** Option lists with labels for the profile wizard and settings (any signed-in user). */
+export function getOnboardingOptions(): Promise<OnboardingOptions> {
+  return apiFetch<OnboardingOptions>("/reference/onboarding")
+}
+
+/** The company profile. 409 `COMPANY_REQUIRED` before /setup/company. */
+export function getCompanyProfile(): Promise<CompanyProfile> {
+  return apiFetch<CompanyProfile>("/company/profile")
+}
+
+/** Saves the whole profile; the first complete save finishes onboarding. */
+export function updateCompanyProfile(
+  input: CompanyProfileUpdate,
+): Promise<CompanyProfile> {
+  return apiFetch<CompanyProfile>("/company/profile", {
+    method: "PUT",
+    body: input,
+    fieldNames: {
+      name: "name",
+      contact_mobile: "mobile",
+      entity_type: "entityType",
+      states: "states",
+      work_types: "workTypes",
+      registration_authority: "registrationAuthority",
+      registration_class: "registrationClass",
+      has_bid_before: "hasBidBefore",
     },
   })
 }

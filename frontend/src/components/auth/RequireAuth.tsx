@@ -12,13 +12,18 @@ function verifyEmailPath(email: string) {
 /**
  * Layout route guard for logged-in screens, in this order:
  * signed out → /login?next=<here>; email not verified → /verify-email;
- * no company yet → /setup/company (skipped with `requireCompany={false}`,
- * which the setup route itself uses); otherwise render the child route.
+ * no company yet → /setup/company; company profile not finished →
+ * /setup/profile; otherwise render the child route.
+ * The setup routes switch off their own step so they never redirect to
+ * themselves: /setup/company uses `requireCompany={false}` (which also
+ * skips the profile check), /setup/profile uses `requireProfile={false}`.
  */
 export function RequireAuth({
   requireCompany = true,
+  requireProfile = true,
 }: {
   requireCompany?: boolean
+  requireProfile?: boolean
 }) {
   const location = useLocation()
   const session = useSession()
@@ -60,8 +65,10 @@ export function RequireAuth({
     )
   }
 
-  if (requireCompany && !me.data.company) {
-    return <Navigate to="/setup/company" replace />
+  if (!requireCompany) return <Outlet />
+  if (!me.data.company) return <Navigate to="/setup/company" replace />
+  if (requireProfile && !me.data.company.profile_completed) {
+    return <Navigate to="/setup/profile" replace />
   }
   return <Outlet />
 }

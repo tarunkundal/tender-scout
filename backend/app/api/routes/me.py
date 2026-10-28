@@ -43,6 +43,8 @@ def to_me(user: CurrentUser, current: CurrentCompany | None) -> MeResponse:
                 id=current.company.id,
                 name=current.company.name,
                 contact_mobile=current.company.contact_mobile,
+                profile_completed=current.company.profile_completed,
+                beginner=current.company.beginner,
             )
             if current
             else None
@@ -71,7 +73,14 @@ async def create_company(
     if await get_user_company(session, user.id) is not None:
         raise company_exists()
 
-    company = Company(name=body.company_name, contact_mobile=body.contact_mobile)
+    # Profile fields are filled in by the wizard (`PUT /company/profile`). Set them explicitly
+    # so the response can read them without a reload after commit.
+    company = Company(
+        name=body.company_name,
+        contact_mobile=body.contact_mobile,
+        has_bid_before=None,
+        profile_completed_at=None,
+    )
     try:
         session.add(company)
         await session.flush()  # assigns company.id

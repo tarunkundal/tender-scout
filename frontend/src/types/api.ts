@@ -55,6 +55,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/company/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_company_profile_get"];
+        /** Update Profile */
+        put: operations["update_profile_company_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reference/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Onboarding Options
+         * @description Signed-in users only; no company needed (the wizard runs right after company setup).
+         */
+        get: operations["get_onboarding_options_reference_onboarding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -67,6 +105,71 @@ export interface components {
             contact_mobile?: string | null;
             /** Consent */
             consent: boolean;
+        };
+        /**
+         * CompanyProfile
+         * @description `GET`/`PUT /company/profile` response.
+         */
+        CompanyProfile: {
+            /** Name */
+            name: string;
+            /** Contact Mobile */
+            contact_mobile: string | null;
+            /** Entity Type */
+            entity_type: ("proprietorship" | "partnership" | "llp" | "private_limited" | "public_limited" | "other") | null;
+            /** States */
+            states: ("AP" | "AR" | "AS" | "BR" | "CG" | "GA" | "GJ" | "HR" | "HP" | "JH" | "KA" | "KL" | "MP" | "MH" | "MN" | "ML" | "MZ" | "NL" | "OD" | "PB" | "RJ" | "SK" | "TN" | "TS" | "TR" | "UP" | "UK" | "WB" | "AN" | "CH" | "DH" | "DL" | "JK" | "LA" | "LD" | "PY")[];
+            /** Work Types */
+            work_types: ("buildings" | "roads_bridges" | "water_sewerage" | "irrigation" | "electrical" | "railways" | "repair_maintenance" | "other")[];
+            /** Registration Authority */
+            registration_authority: ("cpwd" | "state_pwd" | "mes" | "railways" | "other" | "none") | null;
+            /** Registration Class */
+            registration_class: string | null;
+            /** Has Bid Before */
+            has_bid_before: boolean | null;
+            /** Beginner */
+            beginner: boolean | null;
+            /** Profile Completed */
+            profile_completed: boolean;
+        };
+        /**
+         * CompanyProfileUpdate
+         * @description `PUT /company/profile`: the whole profile. Every field is required except the mobile
+         *     number and the registration class (dropped when the authority is `none`).
+         */
+        CompanyProfileUpdate: {
+            /** Name */
+            name: string;
+            /** Contact Mobile */
+            contact_mobile?: string | null;
+            /**
+             * Entity Type
+             * @enum {string}
+             */
+            entity_type: "proprietorship" | "partnership" | "llp" | "private_limited" | "public_limited" | "other";
+            /** States */
+            states: ("AP" | "AR" | "AS" | "BR" | "CG" | "GA" | "GJ" | "HR" | "HP" | "JH" | "KA" | "KL" | "MP" | "MH" | "MN" | "ML" | "MZ" | "NL" | "OD" | "PB" | "RJ" | "SK" | "TN" | "TS" | "TR" | "UP" | "UK" | "WB" | "AN" | "CH" | "DH" | "DL" | "JK" | "LA" | "LD" | "PY")[];
+            /** Work Types */
+            work_types: ("buildings" | "roads_bridges" | "water_sewerage" | "irrigation" | "electrical" | "railways" | "repair_maintenance" | "other")[];
+            /**
+             * Registration Authority
+             * @enum {string}
+             */
+            registration_authority: "cpwd" | "state_pwd" | "mes" | "railways" | "other" | "none";
+            /** Registration Class */
+            registration_class?: string | null;
+            /** Has Bid Before */
+            has_bid_before: boolean;
+        };
+        /** EntityTypeOption */
+        EntityTypeOption: {
+            /**
+             * Value
+             * @enum {string}
+             */
+            value: "proprietorship" | "partnership" | "llp" | "private_limited" | "public_limited" | "other";
+            /** Label */
+            label: string;
         };
         /**
          * ErrorResponse
@@ -114,6 +217,13 @@ export interface components {
             name: string;
             /** Contact Mobile */
             contact_mobile: string | null;
+            /** Profile Completed */
+            profile_completed: boolean;
+            /**
+             * Beginner
+             * @description True when the company has never bid on a government tender; null until asked.
+             */
+            beginner: boolean | null;
         };
         /** MeResponse */
         MeResponse: {
@@ -136,6 +246,40 @@ export interface components {
             /** Email Verified */
             email_verified: boolean;
         };
+        /**
+         * OnboardingOptions
+         * @description `GET /reference/onboarding`: option lists with display labels, in display order.
+         */
+        OnboardingOptions: {
+            /** Entity Types */
+            entity_types: components["schemas"]["EntityTypeOption"][];
+            /** States */
+            states: components["schemas"]["StateOption"][];
+            /** Work Types */
+            work_types: components["schemas"]["WorkTypeOption"][];
+            /** Registration Authorities */
+            registration_authorities: components["schemas"]["RegistrationAuthorityOption"][];
+        };
+        /** RegistrationAuthorityOption */
+        RegistrationAuthorityOption: {
+            /**
+             * Value
+             * @enum {string}
+             */
+            value: "cpwd" | "state_pwd" | "mes" | "railways" | "other" | "none";
+            /** Label */
+            label: string;
+        };
+        /** StateOption */
+        StateOption: {
+            /**
+             * Value
+             * @enum {string}
+             */
+            value: "AP" | "AR" | "AS" | "BR" | "CG" | "GA" | "GJ" | "HR" | "HP" | "JH" | "KA" | "KL" | "MP" | "MH" | "MN" | "ML" | "MZ" | "NL" | "OD" | "PB" | "RJ" | "SK" | "TN" | "TS" | "TR" | "UP" | "UK" | "WB" | "AN" | "CH" | "DH" | "DL" | "JK" | "LA" | "LD" | "PY";
+            /** Label */
+            label: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -148,6 +292,18 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WorkTypeOption */
+        WorkTypeOption: {
+            /**
+             * Value
+             * @enum {string}
+             */
+            value: "buildings" | "roads_bridges" | "water_sewerage" | "irrigation" | "electrical" | "railways" | "repair_maintenance" | "other";
+            /** Label */
+            label: string;
+            /** Hint */
+            hint: string;
         };
     };
     responses: never;
@@ -281,6 +437,151 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_company_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyProfile"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description COMPANY_REQUIRED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_profile_company_profile_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyProfile"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description COMPANY_REQUIRED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_onboarding_options_reference_onboarding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOptions"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

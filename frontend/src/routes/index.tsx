@@ -10,15 +10,18 @@ import HomePage from "@/pages/HomePage"
 import LoginPage from "@/pages/LoginPage"
 import NotFoundPage from "@/pages/NotFoundPage"
 import ResetPasswordPage from "@/pages/ResetPasswordPage"
+import SettingsPage from "@/pages/SettingsPage"
 import SetupCompanyPage from "@/pages/SetupCompanyPage"
+import SetupProfilePage from "@/pages/SetupProfilePage"
 import SignupPage from "@/pages/SignupPage"
 import VerifyEmailPage from "@/pages/VerifyEmailPage"
 import { createBrowserRouter } from "react-router"
 
 /**
  * Route config. Public pages; auth pages that bounce signed-in users
- * (RedirectIfAuthed); the company step and the AppShell screens behind
- * RequireAuth. Later screens go inside the AppShell layout route.
+ * (RedirectIfAuthed); the onboarding steps (company, then profile) and the
+ * AppShell screens behind RequireAuth. Later screens go inside the AppShell
+ * layout route.
  */
 export const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
@@ -41,6 +44,10 @@ export const router = createBrowserRouter([
     children: [{ path: "/setup/company", element: <SetupCompanyPage /> }],
   },
   {
+    element: <RequireAuth requireProfile={false} />,
+    children: [{ path: "/setup/profile", element: <SetupProfilePage /> }],
+  },
+  {
     element: <RequireAuth />,
     children: [
       {
@@ -59,10 +66,7 @@ export const router = createBrowserRouter([
             path: "/pipeline",
             element: <AppPlaceholderPage title="Pipeline" />,
           },
-          {
-            path: "/settings",
-            element: <AppPlaceholderPage title="Settings" />,
-          },
+          { path: "/settings", element: <SettingsPage /> },
         ],
       },
     ],

@@ -56,7 +56,8 @@ export default function SetupCompanyPage() {
 
   function finish() {
     clearPendingCompany()
-    void navigate("/dashboard", { replace: true })
+    // Next onboarding step; it sends finished profiles on to /dashboard.
+    void navigate("/setup/profile", { replace: true })
   }
 
   const mutation = useMutation({
@@ -79,7 +80,14 @@ export default function SetupCompanyPage() {
 
   // RequireAuth renders this only after /me loaded.
   if (!me) return null
-  if (me.company && !pending) return <Navigate to="/dashboard" replace />
+  if (me.company && !pending) {
+    return (
+      <Navigate
+        to={me.company.profile_completed ? "/dashboard" : "/setup/profile"}
+        replace
+      />
+    )
+  }
 
   const { values, errors } = form
 
@@ -88,7 +96,7 @@ export default function SetupCompanyPage() {
       <title>Set up your company · TenderScout</title>
       <AuthLayout
         title="Set up your company"
-        subtitle="Tell us who is bidding. You can add more details later."
+        subtitle="Tell us who is bidding. Next, a few questions about your work."
         footer={
           <>
             Signed in as{" "}
